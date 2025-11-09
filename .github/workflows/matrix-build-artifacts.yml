@@ -1,0 +1,61 @@
+name: Matrix Build + Artifacts (build-9381617)
+
+on:
+  push:
+    branches: [ main, master ]
+  workflow_dispatch: {}
+
+jobs:
+  build:
+    # matrix strategy with 3 variants (Node.js versions)
+    strategy:
+      fail-fast: false
+      matrix:
+        node-version: [14, 16, 18]
+
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js ${{ matrix.node-version }}
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ matrix.node-version }}
+
+      - name: matrix-9381617
+        # The required step identifier appears exactly as requested
+        id: matrix-9381617
+        run: |
+          echo "Starting build for Node.js version ${{ matrix.node-version }}"
+          echo "Matrix identifier step id: $GITHUB_JOB / ${{ matrix.node-version }}"
+      
+      - name: Print environment (sanity)
+        run: |
+          echo "Runner OS: $RUNNER_OS"
+          echo "Node version: $(node -v)"
+          echo "GITHUB_RUN_ID: $GITHUB_RUN_ID"
+
+      - name: Generate build artifact
+        run: |
+          # Create a unique artifact file per matrix variant.
+          # Use variant, run id and timestamp so each artifact is unique and non-empty.
+          ARTFILE="build-9381617-v${{ matrix.node-version }}.txt"
+          echo "Build artifact for node-version: ${{ matrix.node-version }}" > "${ARTFILE}"
+          echo "Repository: $GITHUB_REPOSITORY" >> "${ARTFILE}"
+          echo "Run ID: $GITHUB_RUN_ID" >> "${ARTFILE}"
+          echo "Run number: $GITHUB_RUN_NUMBER" >> "${ARTFILE}"
+          echo "Timestamp: $(date -u +"%Y-%m-%dT%H:%M:%SZ")" >> "${ARTFILE}"
+          echo "Matrix: ${{ toJson(matrix) }}" >> "${ARTFILE}"
+          # show file size for verification
+          ls -l "${ARTFILE}"
+          cat "${ARTFILE}"
+
+      - name: Upload artifact (actions/upload-artifact@v4)
+        uses: actions/upload-artifact@v4
+        with:
+          # Artifact name uses required prefix build-9381617-
+          name: build-9381617-v${{ matrix.node-version }}
+          path: |
+            build-9381617-v${{ matrix.node-version }}.txt
